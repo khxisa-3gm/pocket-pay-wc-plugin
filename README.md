@@ -74,7 +74,7 @@ To enable the gateway for production use, you must enter your live API credentia
 
 ### Live API Credentials
 
-- **Live API Key & Salt:** You can generate these credentials through the Pocket Merchant portal (https://portal.pocket.com.bn/). Note that access to this portal requires you to be a registered Pocket merchant or have a Pocket merchant demo account. If you're interested in acquiring a demo account, please contact our support team. 
+- **Live API Key & Salt:** You may generate these credentials through the Pocket Merchant portal (https://portal.pocket.com.bn/), provided that your portal account has the necessary permission. Note that access to this portal requires you to be a registered Pocket merchant or have a Pocket merchant demo account. If you're interested in acquiring a demo account and live credentials, please contact our support team. 
      - Go to `Manage Keys` to view any previously made credentials.
      - Select `Generate New Keys` to create new keys. 
 
