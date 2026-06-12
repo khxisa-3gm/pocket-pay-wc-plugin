@@ -4,7 +4,7 @@
  * Description: Accept online payments on your woocommerce store powered by Pocket.
  * Author: Yamin @ ThreeG Media Sdn Bhd (Updated by Nisa Alias)
  * Author URI: https://www.threegmedia.com
- * Version: 1.5
+ * Version: 1.6
  */
 if ( ! in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) return;
 add_action( 'plugins_loaded', 'initialize_gateway_class' );
@@ -309,7 +309,7 @@ function initialize_gateway_class() {
 			$returnVal = false;
 			
 			if($this->test_mode){
-				$URL = "http://pay.threeg.asia/payments/getLastOrderId";
+				$URL = "https://pocket-pay-test.threeg.asia/payments/getLastOrderId";
 			} else {
 				$URL = "https://pocket-pay.threeg.asia/payments/getNewOrderIdOld";
 			}
@@ -350,7 +350,7 @@ function initialize_gateway_class() {
 			$returnVal = false;
 			
 			if($this->test_mode){
-				$URL = "http://pay.threeg.asia/payments/status";
+				$URL = "https://pocket-pay-test.threeg.asia/payments/status";
 			} else {
 				$URL = "https://pay.pocket.com.bn/payments/status";
 			}
@@ -403,7 +403,7 @@ function initialize_gateway_class() {
 			$returnVal = false;
 			
 			if($this->test_mode){
-				$URL = "http://pay.threeg.asia/payments/hashOld";
+				$URL = "https://pocket-pay-test.threeg.asia/payments/hashOld";
 			} else {
 				$URL = "https://pocket-pay.threeg.asia/payments/hashOLD";
 			}
@@ -458,7 +458,7 @@ function initialize_gateway_class() {
 			$returnVal = false;
 			
 			if($this->test_mode){
-				$URL = "http://pay.threeg.asia/payments/createOld";
+				$URL = "https://pocket-pay-test.threeg.asia/payments/createOld";
 			} else {
 				$URL = "https://pocket-pay.threeg.asia/payments/createOLD";
 			}

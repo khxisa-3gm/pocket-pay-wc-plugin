@@ -49,8 +49,10 @@ To test the Pocket Pay WooCommerce plugin, you can use the following test creden
   
 - **Test Card Details:**
    - **Number**: 4444 5555 6666 7777
-   - **Expiry Date**: (Any future date)
-   - **CVV**: (Any 3-digit number)
+   - **Expiry Date**: 01 / 35
+   - **CVV**: 555
+
+- To simulate a failed transaction, use the same card number with any CVV value other than `555`.
 
   
 ### How to Use Test Credentials
@@ -66,6 +68,7 @@ To test the Pocket Pay WooCommerce plugin, you can use the following test creden
 ### Note
 
 - These credentials are for testing purposes only and will not process real transactions.
+- The test environment is hosted at `https://pocket-pay-test.threeg.asia` (changed from `http://pay.threeg.asia` as of 17th April 2026). Plugin version 1.6 and above points to the new test environment.
 - For production use, uncheck `Enable Test Mode` in the settings page and replace the test credentials with your live Pocket Pay credentials.
 
 ## Production 
@@ -77,6 +80,10 @@ To enable the gateway for production use, you must enter your live API credentia
 - **Live API Key & Salt:** You may generate these credentials through the Pocket Merchant portal (https://portal.pocket.com.bn/), provided that your portal account has the necessary permission. Note that access to this portal requires you to be a registered Pocket merchant or have a Pocket merchant demo account. If you're interested in acquiring a demo account and live credentials, please contact our support team. 
      - Go to `Manage Keys` to view any previously made credentials.
      - Select `Generate New Keys` to create new keys. 
+
+### Note
+
+- In the production environment, you must use a real card to test out the payment, and void the payment after.
 
 ## Usage
 
