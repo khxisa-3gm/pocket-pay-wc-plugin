@@ -2,22 +2,26 @@
 /*
  * Plugin Name: Pocket Pay Payment Plugin
  * Description: Accept online payments on your woocommerce store powered by Pocket.
- * Author: Yamin @ ThreeG Media Sdn Bhd (Updated by Nisa Alias)
+ * Author: Yamin, Nisa Alias @ ThreeG Media Sdn Bhd 
  * Author URI: https://www.threegmedia.com
- * Version: 1.5
+ * Version: 1.6
  */
-if ( ! in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) return;
-add_action( 'plugins_loaded', 'initialize_gateway_class' );
-add_filter( 'woocommerce_payment_gateways', 'add_custom_gateway_class' );	
+if ( ! in_array( 'woocommerce/woocommerce.php', 
+	apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) 
+return;
+
+add_action( 'init', 'initialize_gateway_class' );
+add_filter( 'woocommerce_payment_gateways', 'add_custom_gateway_class' );
+add_filter( 'woocommerce_defer_transactional_emails', '__return_true' );	
 
 function initialize_gateway_class() {
 	
     class PocketPay extends WC_Payment_Gateway {
-		
-		public string $store_name = '';
-		public bool $test_mode = false;
-		public ?string $api_key = null;
-		public ?string $salt = null;
+
+		public $store_name = '';
+		public $test_mode = false;
+		public $api_key = null;
+		public $salt = null;
 
 		public function __construct() {
 			$this->id = 'pocketpay'; // payment gateway ID
@@ -48,17 +52,12 @@ function initialize_gateway_class() {
 				$this->salt = $this->get_option( 'salt' );
 			}
 			
-
-			// $this->api_key = $this->test_mode ? $this->get_option( 'test_api_key' ) : $this->get_option( 'api_key' );
-			// $this->salt = $this->test_mode ? $this->get_option( 'test_salt' ) : $this->get_option( 'salt' );
-
 			// Action hook to saves the settings
 			if(is_admin()) {
 				  add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
 			}
 
 			// Action hook to load custom JavaScript
-			//add_action( 'wp_enqueue_scripts', array( $this, 'payment_gateway_scripts' ) );
 			add_action( 'woocommerce_api_pocket', array( $this, 'webhook' ) );
 		}
 		
@@ -136,38 +135,6 @@ function initialize_gateway_class() {
 		 
 		}
 		
-		public function payment_scripts() {
-
-			/*
-			// process a token only on cart/checkout pages
-			if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
-				return;
-			}
-
-			// stop enqueue JS if payment gateway is disabled
-			if ( 'no' === $this->enabled ) {
-				return;
-			}
-
-			
-			// stop enqueue JS if API keys are not set
-			if ( empty( $this->private_key ) || empty( $this->publishable_key ) ) {
-				return;
-			}
-
-			// stop enqueue JS if test mode is enabled
-			if ( ! $this->test_mode ) {
-				return;
-			}
-
-			// stop enqueue JS if site without SSL
-			if ( ! is_ssl() ) {
-				return;
-			}
-			*/
-
-
-		}
 		
 		public function process_payment( $order_id ) {
 
@@ -184,7 +151,7 @@ function initialize_gateway_class() {
 			$total_in_cents = intval(floatval($order->get_total())*100);
 			
 			$hashed_data = $this->spp_hash($api_key, $salt, $order_id, $total_in_cents, $return_url, $store_name);
-			if($hashed_data){
+			if($hashed_data) {
 				$createUrl = $this->spp_create_url($api_key, $salt, $order_id, $total_in_cents, $hashed_data->hashed_data, $return_url, $store_name);
 
 				if($createUrl != false){
@@ -200,40 +167,6 @@ function initialize_gateway_class() {
 				wc_add_notice(  'Please try again. 2 : ' . $hashed_data, 'error' );
 				return;
 			}
-
-			/*if( !is_wp_error( $response ) ) {
-		 
-				$body = json_decode( $response['body'], true );
-		 
-				// it could be different depending on your payment processor
-				if ( $body['response']['responseCode'] == 'APPROVED' ) {
-		 
-					// we received the payment
-					$order->payment_complete();
-					$order->reduce_order_stock();
-		 
-					// notes to customer
-					$order->add_order_note( 'Hey, your order is paid! Thank you!', true );
-					$order->add_order_note( 'This private note shows only on order edit page', false );
-		 
-					// empty cart
-					$woocommerce->cart->empty_cart();
-		 
-					// redirect to the thank you page
-					return array(
-						'result' => 'success',
-						'redirect' => $this->get_return_url( $order )
-					);
-		 
-				} else {
-					wc_add_notice(  'Please try again. 3', 'error' );
-					return;
-				}
-		 
-			} else {
-				wc_add_notice(  'Connection error.', 'error' );
-				return;
-			}*/
 		 
 		}
 
@@ -266,15 +199,11 @@ function initialize_gateway_class() {
 									wc_add_notice(  'Payment details did not match.', 'error' );
 									return wp_redirect( home_url( "cart" ) );
 									return;
-									//return wp_redirect($this->get_checkout_url( $order ));
-									//return wp_redirect($this->get_page_by_path( 'cart' ) );
 
 								}
 							} else {
 								wc_add_notice(  'Payment not successful.', 'error' );
 								return wp_redirect( home_url( "cart" ) );
-								//return;
-								//return wp_redirect($this->get_checkout_url( $order ));
 
 							}
 						} else {
@@ -299,45 +228,6 @@ function initialize_gateway_class() {
 			}
 		}
 
-		function get_last_order_id($api_key, $salt){
-			$postData = [
-				"api_key" => $api_key,
-				"salt" => $salt
-			];
-
-			//var_dump($ac);
-			$returnVal = false;
-			
-			if($this->test_mode){
-				$URL = "http://pay.threeg.asia/payments/getLastOrderId";
-			} else {
-				$URL = "https://pocket-pay.threeg.asia/payments/getNewOrderIdOld";
-			}
-			
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $URL);
-			
-			//curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			curl_setopt($ch, CURLOPT_FAILONERROR,1);
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($postData) );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-			
-			$results = curl_exec($ch);
-			$statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-			$err = curl_error($ch);
-			//var_dump($results);
-			if(intval($statusCode) == 200){
-				//Success
-				$returnVal = json_decode($results);
-			} else {
-				echo $statusCode;
-			}
-			curl_close ($ch);
-			return $returnVal;
-		}
 		
 		function query_status($api_key, $salt, $order_id){
 			$postData = [
@@ -349,35 +239,64 @@ function initialize_gateway_class() {
 			//var_dump($ac);
 			$returnVal = false;
 			
-			if($this->test_mode){
-				$URL = "http://pay.threeg.asia/payments/status";
-			} else {
-				$URL = "https://pay.pocket.com.bn/payments/status";
+			// if($this->test_mode){
+			// 	$URL = "http://pay.threeg.asia/payments/status";
+			// } else {
+			// 	$URL = "https://pay.pocket.com.bn/payments/status";
+			// }
+
+			$url = $this->test_mode ? "http://pay.threeg.asia/payments/status" : "https://pay.pocket.com.bn/payments/status";
+			
+			$response = wp_remote_post ( $URL, array(
+				'timeout' => 60,
+				'redirection' => 5,
+				'headers' => array('Content-Type' => 'application/json'),
+				'body' => json_encode( $postData)
+			));
+
+			if ( is_wp_error( $response ) ) {
+				error_log( "PocketPay Query Status Error: " . $response->get_error_message() );
+				return false;
 			}
-			
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $URL);
-			
-			//curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			curl_setopt($ch, CURLOPT_FAILONERROR,1);
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($postData) );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-			
-			$results = curl_exec($ch);
-			$statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-			$err = curl_error($ch);
-			//var_dump($results);
-			if(intval($statusCode) == 200){
-				//Success
-				$returnVal = json_decode($results);
-			} else {
-				echo $statusCode;
+
+			$statusCode = wp_remote_retrieve_response_code( $response );
+        	$results    = wp_remote_retrieve_body( $response );
+
+			if ( intval( $statusCode ) === 200 ) {
+				return json_decode( $results );
 			}
-			curl_close ($ch);
-			return $returnVal;
+
+			error_log( "PocketPay Query Status HTTP Error: $statusCode | Response: $results" );
+        	return false;
+
+
+
+
+
+
+			// $ch = curl_init();
+			// curl_setopt($ch, CURLOPT_URL, $URL);
+			
+			// //curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			// curl_setopt($ch, CURLOPT_FAILONERROR,1);
+			// curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
+			// curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+			// curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+			// curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($postData) );
+			// curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+			
+			// $results = curl_exec($ch);
+			// $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			// $err = curl_error($ch);
+			// //var_dump($results);
+			// if(intval($statusCode) == 200){
+			// 	//Success
+			// 	$returnVal = json_decode($results);
+			// } else {
+			// 	echo $statusCode;
+			// }
+			// curl_close ($ch);
+			// return $returnVal;
 		}
 		
 		function spp_hash($api_key, $salt, $order_id, $amount, $return_url, $store_name){
@@ -407,32 +326,54 @@ function initialize_gateway_class() {
 			} else {
 				$URL = "https://pocket-pay.threeg.asia/payments/hashOLD";
 			}
-			
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $URL);
-			
-			//curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			curl_setopt($ch, CURLOPT_FAILONERROR,1);
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($postData) );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-			
-			$results = curl_exec($ch);
-			$statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-			$err = curl_error($ch);
-			//var_dump($results);
-			if(intval($statusCode) == 200){
-				//Success
-				$returnVal = json_decode($results);
-			} else {
-				
-				wc_add_notice(  'Hashing error : ' . json_encode($URL), 'error' );
-				return;
+
+			$response = wp_remote_post($URL, array(
+				'timeout' => 60,
+				'redirection' => 5,
+				'headers' => array('Content-Type' => 'application/json'),
+				'body' => json_encode($postData)
+			));
+
+			if (is_wp_error($response)) {
+				error_log ( "PocketPay Hash Error: " . $response->get_error_message());
+				return false;
 			}
-			curl_close ($ch);
-			return $returnVal;
+
+			$statusCode = wp_remote_retrieve_response_code($response);
+			$results = wp_remote_retrieve_body($response);
+
+			if (intval($statusCode) === 200) {
+				return json_decode($results);
+			}
+
+			error_log( "PocketPay Hash HTTP Error: $statusCode | Response: $results" );
+        	return false;
+			
+			// $ch = curl_init();
+			// curl_setopt($ch, CURLOPT_URL, $URL);
+			
+			// //curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			// curl_setopt($ch, CURLOPT_FAILONERROR,1);
+			// curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
+			// curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+			// curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+			// curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($postData) );
+			// curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+			
+			// $results = curl_exec($ch);
+			// $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			// $err = curl_error($ch);
+			// //var_dump($results);
+			// if(intval($statusCode) == 200){
+			// 	//Success
+			// 	$returnVal = json_decode($results);
+			// } else {
+				
+			// 	wc_add_notice(  'Hashing error : ' . json_encode($URL), 'error' );
+			// 	return;
+			// }
+			// curl_close ($ch);
+			// return $returnVal;
 		}
 		
 		function spp_create_url($api_key, $salt, $order_id, $amount, $hashed_data, $return_url, $store_name){
@@ -462,27 +403,51 @@ function initialize_gateway_class() {
 			} else {
 				$URL = "https://pocket-pay.threeg.asia/payments/createOLD";
 			}
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_URL, $URL);
-			
-			//curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-			curl_setopt($ch, CURLOPT_FAILONERROR,1);
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-			curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($postData) );
-			curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
-			
-			$results = curl_exec($ch);
-			$statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-			$err = curl_error($ch);
-			//var_dump($results);
-			if(intval($statusCode) == 200){
-				//Success
-				$returnVal = json_decode($results);
+
+			$response = wp_remote_post( $URL, array(
+				'timeout'     => 60,
+				'redirection' => 5,
+				'headers'     => array( 'Content-Type' => 'application/json' ),
+				'body'        => json_encode( $postData ),
+			) );
+
+			 if ( is_wp_error( $response ) ) {
+				error_log( "PocketPay Create URL Error: " . $response->get_error_message() );
+				return false;
 			}
-			curl_close ($ch);
-			return $returnVal;
+
+			$statusCode = wp_remote_retrieve_response_code( $response );
+			$results    = wp_remote_retrieve_body( $response );
+
+			if ( intval( $statusCode ) === 200 ) {
+				return json_decode( $results );
+			}
+
+			error_log( "PocketPay Create URL HTTP Error: $statusCode | Response: $results" );
+			return false;
+
+
+			// $ch = curl_init();
+			// curl_setopt($ch, CURLOPT_URL, $URL);
+			
+			// //curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+			// curl_setopt($ch, CURLOPT_FAILONERROR,1);
+			// curl_setopt($ch, CURLOPT_FOLLOWLOCATION,1);
+			// curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+			// curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+			// curl_setopt( $ch, CURLOPT_POSTFIELDS, json_encode($postData) );
+			// curl_setopt( $ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
+			
+			// $results = curl_exec($ch);
+			// $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+			// $err = curl_error($ch);
+			// //var_dump($results);
+			// if(intval($statusCode) == 200){
+			// 	//Success
+			// 	$returnVal = json_decode($results);
+			// }
+			// curl_close ($ch);
+			// return $returnVal;
 		}
     }
 	
